@@ -6,9 +6,15 @@
   <title>Lente CRM - Fotografía de Eventos</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- Supabase & Export Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    .modal { transition: opacity 0.25s ease; }
+    body.modal-active { overflow-x: hidden; overflow-y: visible !important; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex">
@@ -24,18 +30,15 @@
       </div>
       
       <nav class="space-y-2">
-        <a href="#" class="flex items-center gap-3 px-4 py-3 bg-amber-500/10 text-amber-400 font-semibold rounded-xl border border-amber-500/20">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 bg-amber-500/10 text-amber-400 font-semibold rounded-xl border border-amber-500/20 text-left">
           <i class="fa-solid fa-chart-pie"></i> Dashboard
-        </a>
-        <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition">
+        </button>
+        <button onclick="switchTab('clientes')" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition text-left">
           <i class="fa-solid fa-users"></i> Clientes
-        </a>
-        <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition">
+        </button>
+        <button onclick="switchTab('oportunidades')" id="nav-oportunidades" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition text-left">
           <i class="fa-solid fa-kanban"></i> Oportunidades
-        </a>
-        <a href="#" class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition">
-          <i class="fa-solid fa-file-invoice-dollar"></i> Cotizaciones
-        </a>
+        </button>
       </nav>
     </div>
 
@@ -55,75 +58,373 @@
     <!-- Header -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
-        <h2 class="text-2xl font-bold text-white">Panel de Control Commercial</h2>
+        <h2 id="page-title" class="text-2xl font-bold text-white">Panel de Control Comercial</h2>
         <p class="text-slate-400 text-sm">Resumen de ventas y oportunidades en Pesos Colombianos (COP)</p>
       </div>
       <div class="flex gap-3">
-        <button onclick="alert('Formulario de Nuevo Cliente')" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition">
+        <button onclick="openExportModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition flex items-center gap-2">
+          <i class="fa-solid fa-download"></i> Exportar
+        </button>
+        <button onclick="openClientModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition">
           + Nuevo Cliente
         </button>
-        <button onclick="alert('Formulario de Nueva Cotización')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl font-semibold text-sm transition shadow-lg shadow-amber-500/20">
-          + Crear Cotización
+        <button onclick="openOpportunityModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl font-semibold text-sm transition shadow-lg shadow-amber-500/20">
+          + Nueva Cotización
         </button>
       </div>
     </header>
 
-    <!-- Stat Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-        <p class="text-slate-400 text-sm font-medium">Clientes Registrados</p>
-        <h3 class="text-3xl font-bold text-white mt-2">12</h3>
-        <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">+2 este mes</span>
-      </div>
-      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-        <p class="text-slate-400 text-sm font-medium">Oportunidades Abiertas</p>
-        <h3 class="text-3xl font-bold text-amber-400 mt-2">5</h3>
-        <span class="text-slate-400 text-xs mt-2 inline-block">En negociación</span>
-      </div>
-      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-        <p class="text-slate-400 text-sm font-medium">Pipeline en COP</p>
-        <h3 class="text-2xl font-bold text-white mt-2">$ 18.500.000</h3>
-        <span class="text-amber-400 text-xs mt-2 inline-block">Valor estimado</span>
-      </div>
-      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-        <p class="text-slate-400 text-sm font-medium">Ventas Ganadas</p>
-        <h3 class="text-2xl font-bold text-emerald-400 mt-2">$ 7.200.000</h3>
-        <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">Este mes</span>
-      </div>
-    </div>
-
-    <!-- Kanban Preview / Recent Activity -->
-    <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-      <h3 class="text-lg font-bold text-white mb-4">Próximos Eventos</h3>
-      <div class="space-y-4">
-        <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center font-bold">
-              BODA
-            </div>
-            <div>
-              <p class="font-semibold text-white">Boda Camila & Mateo</p>
-              <p class="text-xs text-slate-400">Jardín Botánico, Medellín • 15 Nov 2026</p>
-            </div>
-          </div>
-          <span class="text-emerald-400 font-bold">$ 4.500.000 COP</span>
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="space-y-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+          <p class="text-slate-400 text-sm font-medium">Clientes Registrados</p>
+          <h3 id="stat-clientes" class="text-3xl font-bold text-white mt-2">0</h3>
+          <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">En base de datos</span>
         </div>
-
-        <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center font-bold">
-              CORP
-            </div>
-            <div>
-              <p class="font-semibold text-white">Evento Anual Empresa Tech</p>
-              <p class="text-xs text-slate-400">Hotel Intercontinental • 28 Nov 2026</p>
-            </div>
-          </div>
-          <span class="text-emerald-400 font-bold">$ 2.700.000 COP</span>
+        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+          <p class="text-slate-400 text-sm font-medium">Oportunidades Abiertas</p>
+          <h3 id="stat-oportunidades" class="text-3xl font-bold text-amber-400 mt-2">0</h3>
+          <span class="text-slate-400 text-xs mt-2 inline-block">En negociación</span>
+        </div>
+        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+          <p class="text-slate-400 text-sm font-medium">Pipeline en COP</p>
+          <h3 id="stat-pipeline" class="text-2xl font-bold text-white mt-2">$ 0</h3>
+          <span class="text-amber-400 text-xs mt-2 inline-block">Valor estimado</span>
+        </div>
+        <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+          <p class="text-slate-400 text-sm font-medium">Ventas Ganadas</p>
+          <h3 id="stat-ganadas" class="text-2xl font-bold text-emerald-400 mt-2">$ 0</h3>
+          <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">Cierres exitosos</span>
         </div>
       </div>
-    </div>
+
+      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+        <h3 class="text-lg font-bold text-white mb-4">Próximos Eventos y Oportunidades</h3>
+        <div id="dashboard-events-list" class="space-y-4">
+          <p class="text-slate-500 text-sm text-center py-6">No hay eventos registrados aún. Haz clic en "+ Nueva Cotización" para comenzar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENTES VIEW -->
+    <section id="view-clientes" class="hidden space-y-6">
+      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="bg-slate-900 text-slate-400 uppercase text-xs">
+            <tr>
+              <th class="p-3">Nombre</th>
+              <th class="p-3">Teléfono</th>
+              <th class="p-3">Email</th>
+              <th class="p-3">Ciudad</th>
+              <th class="p-3">Canal</th>
+              <th class="p-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="table-clientes-body">
+            <tr><td colspan="6" class="p-4 text-center text-slate-500">Cargando clientes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- OPORTUNIDADES KANBAN VIEW -->
+    <section id="view-oportunidades" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-amber-400 mb-4 pb-2 border-b border-slate-800">Prospecto</h4>
+          <div id="kanban-prospecto" class="space-y-3"></div>
+        </div>
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-blue-400 mb-4 pb-2 border-b border-slate-800">Cotización Enviada</h4>
+          <div id="kanban-cotizacion" class="space-y-3"></div>
+        </div>
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-purple-400 mb-4 pb-2 border-b border-slate-800">Negociación</h4>
+          <div id="kanban-negociacion" class="space-y-3"></div>
+        </div>
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <h4 class="font-bold text-emerald-400 mb-4 pb-2 border-b border-slate-800">Ganada</h4>
+          <div id="kanban-ganada" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- MODAL: NUEVO CLIENTE -->
+  <div id="modal-client" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4">
+      <h3 class="text-xl font-bold text-white">Registrar Nuevo Cliente</h3>
+      <form id="form-client" onsubmit="handleSaveClient(event)" class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400">Nombre Completo *</label>
+          <input type="text" id="cli-nombre" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Teléfono (WhatsApp) *</label>
+            <input type="text" id="cli-telefono" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Correo Electrónico *</label>
+            <input type="email" id="cli-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Ciudad</label>
+            <input type="text" id="cli-ciudad" value="Medellín" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Canal de Origen</label>
+            <select id="cli-canal" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+              <option value="WhatsApp">WhatsApp</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Facebook">Facebook</option>
+              <option value="Página Web">Página Web</option>
+              <option value="Recomendación">Recomendación</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <button type="button" onclick="closeClientModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400">Guardar Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA OPORTUNIDAD / COTIZACIÓN -->
+  <div id="modal-opportunity" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg space-y-4">
+      <h3 class="text-xl font-bold text-white">Crear Cotización / Oportunidad</h3>
+      <form id="form-opportunity" onsubmit="handleSaveOpportunity(event)" class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400">Cliente Asociado *</label>
+          <select id="opp-cliente" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <option value="">Selecciona un cliente...</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400">Nombre del Evento / Oportunidad *</label>
+          <input type="text" id="opp-nombre" placeholder="Ej: Boda Camila & Mateo" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Tipo de Evento</label>
+            <select id="opp-tipo" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+              <option value="Boda">Boda</option>
+              <option value="Graduación">Graduación</option>
+              <option value="Evento Corporativo">Evento Corporativo</option>
+              <option value="Cumpleaños">Cumpleaños</option>
+              <option value="Sesión Privada">Sesión Privada</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Fecha del Evento *</label>
+            <input type="date" id="opp-fecha" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Valor Estimado ($ COP) *</label>
+            <input type="number" id="opp-valor" placeholder="4500000" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Etapa Comercial</label>
+            <select id="opp-etapa" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+              <option value="Prospecto">Prospecto</option>
+              <option value="Cotización Enviada">Cotización Enviada</option>
+              <option value="Negociación">Negociación</option>
+              <option value="Ganada">Ganada</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <button type="button" onclick="closeOpportunityModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm">Cancelar</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400">Guardar y Generar PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Inicialización de datos locales / memoria para funcionamiento inmediato
+    let localClientes = JSON.parse(localStorage.getItem('lente_clientes') || '[]');
+    let localOportunidades = JSON.parse(localStorage.getItem('lente_oportunidades') || '[]');
+
+    const formatCOP = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+
+    function switchTab(tab) {
+      document.getElementById('view-dashboard').classList.add('hidden');
+      document.getElementById('view-clientes').classList.add('hidden');
+      document.getElementById('view-oportunidades').classList.add('hidden');
+
+      document.getElementById('view-' + tab).classList.remove('hidden');
+
+      if (tab === 'dashboard') document.getElementById('page-title').innerText = 'Panel de Control Comercial';
+      if (tab === 'clientes') document.getElementById('page-title').innerText = 'Gestión de Clientes';
+      if (tab === 'oportunidades') document.getElementById('page-title').innerText = 'Tablero Kanban de Oportunidades';
+
+      renderAll();
+    }
+
+    function openClientModal() { document.getElementById('modal-client').classList.remove('hidden'); }
+    function closeClientModal() { document.getElementById('modal-client').classList.add('hidden'); }
+
+    function openOpportunityModal() {
+      const select = document.getElementById('opp-cliente');
+      select.innerHTML = '<option value="">Selecciona un cliente...</option>';
+      localClientes.forEach(c => {
+        select.innerHTML += `<option value="${c.nombre_completo}">${c.nombre_completo} (${c.telefono})</option>`;
+      });
+      document.getElementById('modal-opportunity').classList.remove('hidden');
+    }
+    function closeOpportunityModal() { document.getElementById('modal-opportunity').classList.add('hidden'); }
+
+    function handleSaveClient(e) {
+      e.preventDefault();
+      const nuevoCliente = {
+        id: Date.now(),
+        nombre_completo: document.getElementById('cli-nombre').value,
+        telefono: document.getElementById('cli-telefono').value,
+        email: document.getElementById('cli-email').value,
+        ciudad: document.getElementById('cli-ciudad').value,
+        canal_origen: document.getElementById('cli-canal').value,
+        estado: 'Activo'
+      };
+
+      localClientes.push(nuevoCliente);
+      localStorage.setItem('lente_clientes', JSON.stringify(localClientes));
+      closeClientModal();
+      document.getElementById('form-client').reset();
+      renderAll();
+      alert('¡Cliente registrado con éxito!');
+    }
+
+    function handleSaveOpportunity(e) {
+      e.preventDefault();
+      const clienteNombre = document.getElementById('opp-cliente').value;
+      const valor = parseFloat(document.getElementById('opp-valor').value);
+      const nuevaOpp = {
+        id: Date.now(),
+        cliente: clienteNombre,
+        nombre: document.getElementById('opp-nombre').value,
+        tipo: document.getElementById('opp-tipo').value,
+        fecha: document.getElementById('opp-fecha').value,
+        valor: valor,
+        etapa: document.getElementById('opp-etapa').value
+      };
+
+      localOportunidades.push(nuevaOpp);
+      localStorage.setItem('lente_oportunidades', JSON.stringify(localOportunidades));
+      closeOpportunityModal();
+      
+      // Generar PDF automático
+      generatePDF(nuevaOpp);
+
+      document.getElementById('form-opportunity').reset();
+      renderAll();
+    }
+
+    function generatePDF(opp) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.setTextColor(245, 158, 11);
+      doc.text("LENTE CRM - COTIZACIÓN DE FOTOGRAFÍA", 20, 20);
+
+      doc.setFontSize(12);
+      doc.setTextColor(50, 50, 50);
+      doc.text(`Cliente: ${opp.cliente}`, 20, 40);
+      doc.text(`Evento: ${opp.nombre}`, 20, 50);
+      doc.text(`Tipo de Evento: ${opp.tipo}`, 20, 60);
+      doc.text(`Fecha del Evento: ${opp.fecha}`, 20, 70);
+      doc.text(`Valor Total Cotizado: ${formatCOP(opp.valor)}`, 20, 80);
+
+      doc.text("Gracias por su confianza. Esta cotización tiene una validez de 15 días.", 20, 110);
+      doc.save(`Cotizacion_${opp.nombre.replace(/\s+/g, '_')}.pdf`);
+    }
+
+    function openExportModal() {
+      const worksheet = XLSX.utils.json_to_sheet(localClientes);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
+      XLSX.writeFile(workbook, "Lente_CRM_BaseDeDatos.xlsx");
+    }
+
+    function renderAll() {
+      // Stats
+      document.getElementById('stat-clientes').innerText = localClientes.length;
+      document.getElementById('stat-oportunidades').innerText = localOportunidades.filter(o => o.etapa !== 'Ganada').length;
+      
+      const pipelineVal = localOportunidades.filter(o => o.etapa !== 'Ganada').reduce((acc, curr) => acc + curr.valor, 0);
+      const ganadasVal = localOportunidades.filter(o => o.etapa === 'Ganada').reduce((acc, curr) => acc + curr.valor, 0);
+      
+      document.getElementById('stat-pipeline').innerText = formatCOP(pipelineVal);
+      document.getElementById('stat-ganadas').innerText = formatCOP(ganadasVal);
+
+      // Tabla Clientes
+      const tbody = document.getElementById('table-clientes-body');
+      if (localClientes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No hay clientes registrados aún.</td></tr>`;
+      } else {
+        tbody.innerHTML = localClientes.map(c => `
+          <tr class="border-b border-slate-800">
+            <td class="p-3 font-semibold text-white">${c.nombre_completo}</td>
+            <td class="p-3">${c.telefono}</td>
+            <td class="p-3">${c.email}</td>
+            <td class="p-3">${c.ciudad}</td>
+            <td class="p-3"><span class="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-lg text-xs">${c.canal_origen}</span></td>
+            <td class="p-3"><span class="text-emerald-400 text-xs font-bold">${c.estado}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      // Kanban
+      ['prospecto', 'cotizacion', 'negociacion', 'ganada'].forEach(etapa => {
+        document.getElementById('kanban-' + etapa).innerHTML = '';
+      });
+
+      localOportunidades.forEach(o => {
+        const key = o.etapa.toLowerCase().includes('prospecto') ? 'prospecto' :
+                    o.etapa.toLowerCase().includes('cotización') ? 'cotizacion' :
+                    o.etapa.toLowerCase().includes('negociación') ? 'negociacion' : 'ganada';
+
+        const el = document.getElementById('kanban-' + key);
+        if (el) {
+          el.innerHTML += `
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-2">
+              <p class="font-semibold text-white text-sm">${o.nombre}</p>
+              <p class="text-xs text-slate-400">${o.cliente} • ${o.fecha}</p>
+              <p class="text-xs font-bold text-emerald-400">${formatCOP(o.valor)}</p>
+            </div>
+          `;
+        }
+      });
+
+      // Events list
+      const list = document.getElementById('dashboard-events-list');
+      if (localOportunidades.length === 0) {
+        list.innerHTML = `<p class="text-slate-500 text-sm text-center py-6">No hay eventos registrados aún. Haz clic en "+ Nueva Cotización" para comenzar.</p>`;
+      } else {
+        list.innerHTML = localOportunidades.map(o => `
+          <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
+            <div>
+              <p class="font-semibold text-white">${o.nombre}</p>
+              <p class="text-xs text-slate-400">${o.cliente} • ${o.fecha}</p>
+            </div>
+            <span class="text-emerald-400 font-bold">${formatCOP(o.valor)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render inicial
+    renderAll();
+  </script>
 </body>
 </html>
