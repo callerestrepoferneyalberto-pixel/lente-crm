@@ -6,15 +6,12 @@
   <title>Lente CRM - Fotografía de Eventos</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <!-- Supabase & Export Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Export Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
-    .modal { transition: opacity 0.25s ease; }
-    body.modal-active { overflow-x: hidden; overflow-y: visible !important; }
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex">
@@ -39,6 +36,9 @@
         <button onclick="switchTab('oportunidades')" id="nav-oportunidades" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition text-left">
           <i class="fa-solid fa-kanban"></i> Oportunidades
         </button>
+        <button onclick="switchTab('precios')" id="nav-precios" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-900 hover:text-slate-200 rounded-xl transition text-left">
+          <i class="fa-solid fa-tags"></i> Tarifas y Paquetes
+        </button>
       </nav>
     </div>
 
@@ -59,17 +59,17 @@
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
         <h2 id="page-title" class="text-2xl font-bold text-white">Panel de Control Comercial</h2>
-        <p class="text-slate-400 text-sm">Resumen de ventas y oportunidades en Pesos Colombianos (COP)</p>
+        <p class="text-slate-400 text-sm">Cotización y gestión de eventos en Pesos Colombianos (COP)</p>
       </div>
       <div class="flex gap-3">
-        <button onclick="openExportModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition flex items-center gap-2">
-          <i class="fa-solid fa-download"></i> Exportar
+        <button onclick="exportExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition flex items-center gap-2">
+          <i class="fa-solid fa-download"></i> Exportar Excel
         </button>
         <button onclick="openClientModal()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl border border-slate-700 font-medium text-sm transition">
           + Nuevo Cliente
         </button>
         <button onclick="openOpportunityModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-xl font-semibold text-sm transition shadow-lg shadow-amber-500/20">
-          + Nueva Cotización
+          + Cotizar Evento
         </button>
       </div>
     </header>
@@ -80,30 +80,24 @@
         <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
           <p class="text-slate-400 text-sm font-medium">Clientes Registrados</p>
           <h3 id="stat-clientes" class="text-3xl font-bold text-white mt-2">0</h3>
-          <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">En base de datos</span>
         </div>
         <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
           <p class="text-slate-400 text-sm font-medium">Oportunidades Abiertas</p>
           <h3 id="stat-oportunidades" class="text-3xl font-bold text-amber-400 mt-2">0</h3>
-          <span class="text-slate-400 text-xs mt-2 inline-block">En negociación</span>
         </div>
         <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
           <p class="text-slate-400 text-sm font-medium">Pipeline en COP</p>
           <h3 id="stat-pipeline" class="text-2xl font-bold text-white mt-2">$ 0</h3>
-          <span class="text-amber-400 text-xs mt-2 inline-block">Valor estimado</span>
         </div>
         <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
           <p class="text-slate-400 text-sm font-medium">Ventas Ganadas</p>
           <h3 id="stat-ganadas" class="text-2xl font-bold text-emerald-400 mt-2">$ 0</h3>
-          <span class="text-emerald-400 text-xs font-semibold mt-2 inline-block">Cierres exitosos</span>
         </div>
       </div>
 
       <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
-        <h3 class="text-lg font-bold text-white mb-4">Próximos Eventos y Oportunidades</h3>
-        <div id="dashboard-events-list" class="space-y-4">
-          <p class="text-slate-500 text-sm text-center py-6">No hay eventos registrados aún. Haz clic en "+ Nueva Cotización" para comenzar.</p>
-        </div>
+        <h3 class="text-lg font-bold text-white mb-4">Próximos Eventos Cotizados</h3>
+        <div id="dashboard-events-list" class="space-y-4"></div>
       </div>
     </section>
 
@@ -118,12 +112,9 @@
               <th class="p-3">Email</th>
               <th class="p-3">Ciudad</th>
               <th class="p-3">Canal</th>
-              <th class="p-3">Estado</th>
             </tr>
           </thead>
-          <tbody id="table-clientes-body">
-            <tr><td colspan="6" class="p-4 text-center text-slate-500">Cargando clientes...</td></tr>
-          </tbody>
+          <tbody id="table-clientes-body"></tbody>
         </table>
       </div>
     </section>
@@ -149,6 +140,19 @@
         </div>
       </div>
     </section>
+
+    <!-- TARIFAS Y PRECIOS ADMIN VIEW -->
+    <section id="view-precios" class="hidden space-y-6">
+      <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800">
+        <h3 class="text-xl font-bold text-white mb-4">Configuración de Precios Base ($ COP)</h3>
+        <p class="text-xs text-slate-400 mb-6">Modifica las tarifas base para que el cotizador automático aplique los nuevos valores.</p>
+        
+        <div id="pricing-settings-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        <button onclick="saveCustomPrices()" class="mt-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl transition">
+          Guardar Nuevas Tarifas
+        </button>
+      </div>
+    </section>
   </main>
 
   <!-- MODAL: NUEVO CLIENTE -->
@@ -158,26 +162,26 @@
       <form id="form-client" onsubmit="handleSaveClient(event)" class="space-y-3">
         <div>
           <label class="text-xs text-slate-400">Nombre Completo *</label>
-          <input type="text" id="cli-nombre" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+          <input type="text" id="cli-nombre" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-slate-400">Teléfono (WhatsApp) *</label>
-            <input type="text" id="cli-telefono" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <input type="text" id="cli-telefono" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
           </div>
           <div>
             <label class="text-xs text-slate-400">Correo Electrónico *</label>
-            <input type="email" id="cli-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <input type="email" id="cli-email" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs text-slate-400">Ciudad</label>
-            <input type="text" id="cli-ciudad" value="Medellín" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <input type="text" id="cli-ciudad" value="Medellín" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
           </div>
           <div>
             <label class="text-xs text-slate-400">Canal de Origen</label>
-            <select id="cli-canal" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <select id="cli-canal" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
               <option value="WhatsApp">WhatsApp</option>
               <option value="Instagram">Instagram</option>
               <option value="Facebook">Facebook</option>
@@ -194,55 +198,85 @@
     </div>
   </div>
 
-  <!-- MODAL: NUEVA OPORTUNIDAD / COTIZACIÓN -->
-  <div id="modal-opportunity" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg space-y-4">
-      <h3 class="text-xl font-bold text-white">Crear Cotización / Oportunidad</h3>
-      <form id="form-opportunity" onsubmit="handleSaveOpportunity(event)" class="space-y-3">
-        <div>
-          <label class="text-xs text-slate-400">Cliente Asociado *</label>
-          <select id="opp-cliente" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
-            <option value="">Selecciona un cliente...</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-400">Nombre del Evento / Oportunidad *</label>
-          <input type="text" id="opp-nombre" placeholder="Ej: Boda Camila & Mateo" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+  <!-- MODAL: COTIZADOR INTERACTIVO CON DETALLES -->
+  <div id="modal-opportunity" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-2xl space-y-6 my-8">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+        <h3 class="text-xl font-bold text-white">Cotizador Dinámico de Eventos</h3>
+        <button onclick="closeOpportunityModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+
+      <form id="form-opportunity" onsubmit="handleSaveOpportunity(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="text-xs text-slate-400">Tipo de Evento</label>
-            <select id="opp-tipo" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
-              <option value="Boda">Boda</option>
-              <option value="Graduación">Graduación</option>
-              <option value="Evento Corporativo">Evento Corporativo</option>
-              <option value="Cumpleaños">Cumpleaños</option>
-              <option value="Sesión Privada">Sesión Privada</option>
+            <label class="text-xs text-slate-400">Cliente *</label>
+            <select id="opp-cliente" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
+              <option value="">Selecciona un cliente...</option>
             </select>
           </div>
           <div>
             <label class="text-xs text-slate-400">Fecha del Evento *</label>
-            <input type="date" id="opp-fecha" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
+            <input type="date" id="opp-fecha" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none">
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs text-slate-400">Valor Estimado ($ COP) *</label>
-            <input type="number" id="opp-valor" placeholder="4500000" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-slate-400">Etapa Comercial</label>
-            <select id="opp-etapa" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm focus:border-amber-500 outline-none">
-              <option value="Prospecto">Prospecto</option>
-              <option value="Cotización Enviada">Cotización Enviada</option>
-              <option value="Negociación">Negociación</option>
-              <option value="Ganada">Ganada</option>
-            </select>
+
+        <div>
+          <label class="text-xs text-slate-400">Tipo de Evento (Selecciona Paquete Base) *</label>
+          <select id="opp-tipo" onchange="updateQuoteCalculation()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white text-sm outline-none font-semibold text-amber-400">
+            <option value="Boda">💍 Boda / Matrimonio (Paquete Completo)</option>
+            <option value="Graduacion">🎓 Grados y Ceremónias Protocolarias</option>
+            <option value="Corporativo">🏢 Evento Corporativo / Empresa</option>
+            <option value="Cumpleanos">🎂 Cumpleaños y 15 Años</option>
+            <option value="Sesion">📸 Sesión Privada / Estudio</option>
+          </select>
+        </div>
+
+        <!-- DESGLOSE DEL PAQUETE SELECCIONADO -->
+        <div id="package-details-box" class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <p class="text-xs font-bold text-amber-400 uppercase tracking-wider">¿Qué incluye este paquete?:</p>
+          <ul id="package-features-list" class="text-xs text-slate-300 space-y-1 pl-4 list-disc"></ul>
+        </div>
+
+        <!-- ADICIONALES (ADD-ONS) -->
+        <div>
+          <label class="text-xs text-slate-400 mb-2 block">Servicios Adicionales Opcionales:</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <label class="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="addon-dron" onchange="updateQuoteCalculation()" class="rounded accent-amber-500">
+              <span>🚁 Tomas con Dron (+<span id="price-addon-dron"></span> COP)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="addon-photobook" onchange="updateQuoteCalculation()" class="rounded accent-amber-500">
+              <span>📚 Photobook de Lujo (+<span id="price-addon-photobook"></span> COP)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="addon-express" onchange="updateQuoteCalculation()" class="rounded accent-amber-500">
+              <span>⚡ Entrega Express 48h (+<span id="price-addon-express"></span> COP)</span>
+            </label>
+            <label class="flex items-center gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="addon-reel" onchange="updateQuoteCalculation()" class="rounded accent-amber-500">
+              <span>🎥 Video Reel 60s (+<span id="price-addon-reel"></span> COP)</span>
+            </label>
           </div>
         </div>
-        <div class="flex justify-end gap-3 pt-4">
+
+        <!-- RESUMEN DE TOTAL Y AJUSTE MANUAL -->
+        <div class="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400">Total Cotizado Estimado:</p>
+            <h4 id="quote-total-display" class="text-2xl font-bold text-amber-400">$ 0 COP</h4>
+          </div>
+          <div class="text-right">
+            <label class="text-xs text-slate-400 block">Ajuste de Descuento/Precio Final ($ COP):</label>
+            <input type="number" id="opp-valor-custom" oninput="overrideTotalFromInput()" class="bg-slate-950 border border-slate-800 rounded-xl p-2 text-white text-right text-sm w-36 outline-none">
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
           <button type="button" onclick="closeOpportunityModal()" class="px-4 py-2 rounded-xl text-slate-400 hover:bg-slate-800 text-sm">Cancelar</button>
-          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400">Guardar y Generar PDF</button>
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-sm hover:bg-amber-400 flex items-center gap-2">
+            <i class="fa-solid fa-file-pdf"></i> Guardar y Generar PDF
+          </button>
         </div>
       </form>
     </div>
@@ -250,23 +284,36 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    // Inicialización de datos locales / memoria para funcionamiento inmediato
+    // Configuracion de precios por defecto en COP
+    let defaultPrices = {
+      packages: {
+        Boda: { price: 3800000, features: ["Cobertura Completa (Preparativos, Ceremonia y Fiesta)", "2 Fotógrafos Profesionales", "Galería Digital HD en la nube con acceso ilimitado", "Edición profesional de color y luz"] },
+        Graduacion: { price: 1200000, features: ["Cobertura de Ceremonia y Entrega de Diplomas", "Fotografía Protocolaria individual y con familiares", "Entrega Digital HD rápida en 48 horas"] },
+        Corporativo: { price: 2200000, features: ["Cobertura Comercial de Conferencia / Evento", "Derecho de Uso Comercial de Fotografías", "Entrega Express para Prensa y Redes Sociales"] },
+        Cumpleanos: { price: 1500000, features: ["Cobertura de Fiesta y Recepción (hasta 5 horas)", "Photocall / Muro para invitados", "Galería Digital HD compartible"] },
+        Sesion: { price: 600000, features: ["Sesión de 2 horas en Estudio o Exteriores", "3 Cambios de vestuario", "20 Fotografías retocadas en alta definición"] }
+      },
+      addons: {
+        dron: 600000,
+        photobook: 750000,
+        express: 400000,
+        reel: 500000
+      }
+    };
+
+    let pricingConfig = JSON.parse(localStorage.getItem('lente_pricing')) || defaultPrices;
     let localClientes = JSON.parse(localStorage.getItem('lente_clientes') || '[]');
     let localOportunidades = JSON.parse(localStorage.getItem('lente_oportunidades') || '[]');
 
     const formatCOP = (val) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
 
     function switchTab(tab) {
-      document.getElementById('view-dashboard').classList.add('hidden');
-      document.getElementById('view-clientes').classList.add('hidden');
-      document.getElementById('view-oportunidades').classList.add('hidden');
-
+      ['dashboard', 'clientes', 'oportunidades', 'precios'].forEach(t => {
+        document.getElementById('view-' + t).classList.add('hidden');
+      });
       document.getElementById('view-' + tab).classList.remove('hidden');
 
-      if (tab === 'dashboard') document.getElementById('page-title').innerText = 'Panel de Control Comercial';
-      if (tab === 'clientes') document.getElementById('page-title').innerText = 'Gestión de Clientes';
-      if (tab === 'oportunidades') document.getElementById('page-title').innerText = 'Tablero Kanban de Oportunidades';
-
+      if (tab === 'precios') renderPricingAdmin();
       renderAll();
     }
 
@@ -279,9 +326,42 @@
       localClientes.forEach(c => {
         select.innerHTML += `<option value="${c.nombre_completo}">${c.nombre_completo} (${c.telefono})</option>`;
       });
+
+      // Mostrar precios de adicionales
+      document.getElementById('price-addon-dron').innerText = formatCOP(pricingConfig.addons.dron);
+      document.getElementById('price-addon-photobook').innerText = formatCOP(pricingConfig.addons.photobook);
+      document.getElementById('price-addon-express').innerText = formatCOP(pricingConfig.addons.express);
+      document.getElementById('price-addon-reel').innerText = formatCOP(pricingConfig.addons.reel);
+
       document.getElementById('modal-opportunity').classList.remove('hidden');
+      updateQuoteCalculation();
     }
+
     function closeOpportunityModal() { document.getElementById('modal-opportunity').classList.add('hidden'); }
+
+    function updateQuoteCalculation() {
+      const tipo = document.getElementById('opp-tipo').value;
+      const pkg = pricingConfig.packages[tipo] || pricingConfig.packages['Boda'];
+
+      // Actualizar características del paquete
+      const list = document.getElementById('package-features-list');
+      list.innerHTML = pkg.features.map(f => `<li>${f}</li>`).join('');
+
+      // Sumar Adicionales
+      let total = pkg.price;
+      if (document.getElementById('addon-dron').checked) total += pricingConfig.addons.dron;
+      if (document.getElementById('addon-photobook').checked) total += pricingConfig.addons.photobook;
+      if (document.getElementById('addon-express').checked) total += pricingConfig.addons.express;
+      if (document.getElementById('addon-reel').checked) total += pricingConfig.addons.reel;
+
+      document.getElementById('quote-total-display').innerText = formatCOP(total);
+      document.getElementById('opp-valor-custom').value = total;
+    }
+
+    function overrideTotalFromInput() {
+      const customVal = parseFloat(document.getElementById('opp-valor-custom').value) || 0;
+      document.getElementById('quote-total-display').innerText = formatCOP(customVal);
+    }
 
     function handleSaveClient(e) {
       e.preventDefault();
@@ -291,8 +371,7 @@
         telefono: document.getElementById('cli-telefono').value,
         email: document.getElementById('cli-email').value,
         ciudad: document.getElementById('cli-ciudad').value,
-        canal_origen: document.getElementById('cli-canal').value,
-        estado: 'Activo'
+        canal_origen: document.getElementById('cli-canal').value
       };
 
       localClientes.push(nuevoCliente);
@@ -300,131 +379,108 @@
       closeClientModal();
       document.getElementById('form-client').reset();
       renderAll();
-      alert('¡Cliente registrado con éxito!');
     }
 
     function handleSaveOpportunity(e) {
       e.preventDefault();
       const clienteNombre = document.getElementById('opp-cliente').value;
-      const valor = parseFloat(document.getElementById('opp-valor').value);
+      const valorFinal = parseFloat(document.getElementById('opp-valor-custom').value);
+      const tipoKey = document.getElementById('opp-tipo').value;
+      const pkg = pricingConfig.packages[tipoKey];
+
+      let extras = [];
+      if (document.getElementById('addon-dron').checked) extras.push("Tomas Aéreas con Dron");
+      if (document.getElementById('addon-photobook').checked) extras.push("Photobook de Lujo Impreso");
+      if (document.getElementById('addon-express').checked) extras.push("Entrega Express 48h");
+      if (document.getElementById('addon-reel').checked) extras.push("Video Reel Redes Sociales");
+
       const nuevaOpp = {
         id: Date.now(),
         cliente: clienteNombre,
-        nombre: document.getElementById('opp-nombre').value,
-        tipo: document.getElementById('opp-tipo').value,
+        nombre: `Evento ${tipoKey} - ${clienteNombre}`,
+        tipo: tipoKey,
         fecha: document.getElementById('opp-fecha').value,
-        valor: valor,
-        etapa: document.getElementById('opp-etapa').value
+        valor: valorFinal,
+        etapa: 'Cotización Enviada',
+        features: pkg.features,
+        extras: extras
       };
 
       localOportunidades.push(nuevaOpp);
       localStorage.setItem('lente_oportunidades', JSON.stringify(localOportunidades));
       closeOpportunityModal();
       
-      // Generar PDF automático
-      generatePDF(nuevaOpp);
-
-      document.getElementById('form-opportunity').reset();
+      generateDetailedPDF(nuevaOpp);
       renderAll();
     }
 
-    function generatePDF(opp) {
+    function generateDetailedPDF(opp) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       
+      // Estilo de Colores Artes Plásticas / Elegante
+      doc.setFillColor(15, 23, 42); // Slate Oscuro
+      doc.rect(0, 0, 210, 40, 'F');
+
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
-      doc.setTextColor(245, 158, 11);
-      doc.text("LENTE CRM - COTIZACIÓN DE FOTOGRAFÍA", 20, 20);
+      doc.setFontSize(22);
+      doc.setTextColor(245, 158, 11); // Dorado Amber
+      doc.text("LENTE CRM - PROPUESTA DE FOTOGRAFÍA", 15, 25);
 
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setTextColor(50, 50, 50);
-      doc.text(`Cliente: ${opp.cliente}`, 20, 40);
-      doc.text(`Evento: ${opp.nombre}`, 20, 50);
-      doc.text(`Tipo de Evento: ${opp.tipo}`, 20, 60);
-      doc.text(`Fecha del Evento: ${opp.fecha}`, 20, 70);
-      doc.text(`Valor Total Cotizado: ${formatCOP(opp.valor)}`, 20, 80);
+      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-CO')}`, 15, 50);
+      doc.text(`Cliente: ${opp.cliente}`, 15, 58);
+      doc.text(`Fecha del Evento: ${opp.fecha}`, 15, 66);
+      doc.text(`Tipo de Evento: ${opp.tipo}`, 15, 74);
 
-      doc.text("Gracias por su confianza. Esta cotización tiene una validez de 15 días.", 20, 110);
-      doc.save(`Cotizacion_${opp.nombre.replace(/\s+/g, '_')}.pdf`);
-    }
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, 80, 195, 80);
 
-    function openExportModal() {
-      const worksheet = XLSX.utils.json_to_sheet(localClientes);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
-      XLSX.writeFile(workbook, "Lente_CRM_BaseDeDatos.xlsx");
-    }
+      doc.setFontSize(13);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Servicios Incluidos en la Cotización:", 15, 92);
 
-    function renderAll() {
-      // Stats
-      document.getElementById('stat-clientes').innerText = localClientes.length;
-      document.getElementById('stat-oportunidades').innerText = localOportunidades.filter(o => o.etapa !== 'Ganada').length;
-      
-      const pipelineVal = localOportunidades.filter(o => o.etapa !== 'Ganada').reduce((acc, curr) => acc + curr.valor, 0);
-      const ganadasVal = localOportunidades.filter(o => o.etapa === 'Ganada').reduce((acc, curr) => acc + curr.valor, 0);
-      
-      document.getElementById('stat-pipeline').innerText = formatCOP(pipelineVal);
-      document.getElementById('stat-ganadas').innerText = formatCOP(ganadasVal);
-
-      // Tabla Clientes
-      const tbody = document.getElementById('table-clientes-body');
-      if (localClientes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No hay clientes registrados aún.</td></tr>`;
-      } else {
-        tbody.innerHTML = localClientes.map(c => `
-          <tr class="border-b border-slate-800">
-            <td class="p-3 font-semibold text-white">${c.nombre_completo}</td>
-            <td class="p-3">${c.telefono}</td>
-            <td class="p-3">${c.email}</td>
-            <td class="p-3">${c.ciudad}</td>
-            <td class="p-3"><span class="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-lg text-xs">${c.canal_origen}</span></td>
-            <td class="p-3"><span class="text-emerald-400 text-xs font-bold">${c.estado}</span></td>
-          </tr>
-        `).join('');
-      }
-
-      // Kanban
-      ['prospecto', 'cotizacion', 'negociacion', 'ganada'].forEach(etapa => {
-        document.getElementById('kanban-' + etapa).innerHTML = '';
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      let y = 102;
+      opp.features.forEach(f => {
+        doc.text(`• ${f}`, 20, y);
+        y += 8;
       });
 
-      localOportunidades.forEach(o => {
-        const key = o.etapa.toLowerCase().includes('prospecto') ? 'prospecto' :
-                    o.etapa.toLowerCase().includes('cotización') ? 'cotizacion' :
-                    o.etapa.toLowerCase().includes('negociación') ? 'negociacion' : 'ganada';
-
-        const el = document.getElementById('kanban-' + key);
-        if (el) {
-          el.innerHTML += `
-            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 space-y-2">
-              <p class="font-semibold text-white text-sm">${o.nombre}</p>
-              <p class="text-xs text-slate-400">${o.cliente} • ${o.fecha}</p>
-              <p class="text-xs font-bold text-emerald-400">${formatCOP(o.valor)}</p>
-            </div>
-          `;
-        }
-      });
-
-      // Events list
-      const list = document.getElementById('dashboard-events-list');
-      if (localOportunidades.length === 0) {
-        list.innerHTML = `<p class="text-slate-500 text-sm text-center py-6">No hay eventos registrados aún. Haz clic en "+ Nueva Cotización" para comenzar.</p>`;
-      } else {
-        list.innerHTML = localOportunidades.map(o => `
-          <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
-            <div>
-              <p class="font-semibold text-white">${o.nombre}</p>
-              <p class="text-xs text-slate-400">${o.cliente} • ${o.fecha}</p>
-            </div>
-            <span class="text-emerald-400 font-bold">${formatCOP(o.valor)}</span>
-          </div>
-        `).join('');
+      if (opp.extras && opp.extras.length > 0) {
+        y += 4;
+        doc.setFont("helvetica", "bold");
+        doc.text("Servicios Adicionales Seleccionados:", 15, y);
+        y += 8;
+        doc.setFont("helvetica", "normal");
+        opp.extras.forEach(ex => {
+          doc.text(`+ ${ex}`, 20, y);
+          y += 8;
+        });
       }
+
+      y += 10;
+      doc.setFillColor(245, 158, 11);
+      doc.rect(15, y, 180, 18, 'F');
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(`VALOR TOTAL INVERSIÓN: ${formatCOP(opp.valor)} COP`, 25, y + 12);
+
+      doc.save(`Cotizacion_${opp.tipo}_${opp.cliente.replace(/\s+/g, '_')}.pdf`);
     }
 
-    // Render inicial
-    renderAll();
-  </script>
-</body>
-</html>
+    function renderPricingAdmin() {
+      const container = document.getElementById('pricing-settings-container');
+      container.innerHTML = Object.keys(pricingConfig.packages).map(pkgKey => `
+        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+          <label class="font-bold text-amber-400 text-sm block">Paquete ${pkgKey}:</label>
+          <input type="number" id="price-pkg-${pkgKey}" value="${pricingConfig.packages[pkgKey].price}" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-sm">
+        </div>
+      `).join('');
+    }
+
+    function saveCustomPrices() {
+      Object.keys(pricingConfig.packages).forEach(pkgKey => {
