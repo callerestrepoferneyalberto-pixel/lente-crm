@@ -484,3 +484,51 @@
 
     function saveCustomPrices() {
       Object.keys(pricingConfig.packages).forEach(pkgKey => {
+        const input = document.getElementById(`price-pkg-${pkgKey}`);
+        if (input) pricingConfig.packages[pkgKey].price = parseFloat(input.value);
+      });
+      localStorage.setItem('lente_pricing', JSON.stringify(pricingConfig));
+      alert('¡Tarifas actualizadas correctamente!');
+    }
+
+    function exportExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(localClientes);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
+      XLSX.writeFile(workbook, "Lente_CRM_BaseDeDatos.xlsx");
+    }
+
+    function renderAll() {
+      document.getElementById('stat-clientes').innerText = localClientes.length;
+      document.getElementById('stat-oportunidades').innerText = localOportunidades.length;
+
+      const pipelineVal = localOportunidades.reduce((acc, curr) => acc + curr.valor, 0);
+      document.getElementById('stat-pipeline').innerText = formatCOP(pipelineVal);
+
+      // Tabla Clientes
+      document.getElementById('table-clientes-body').innerHTML = localClientes.map(c => `
+        <tr class="border-b border-slate-800">
+          <td class="p-3 font-semibold text-white">${c.nombre_completo}</td>
+          <td class="p-3">${c.telefono}</td>
+          <td class="p-3">${c.email}</td>
+          <td class="p-3">${c.ciudad}</td>
+          <td class="p-3"><span class="px-2 py-1 bg-amber-500/10 text-amber-400 rounded-lg text-xs">${c.canal_origen}</span></td>
+        </tr>
+      `).join('');
+
+      // Events list
+      document.getElementById('dashboard-events-list').innerHTML = localOportunidades.map(o => `
+        <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
+          <div>
+            <p class="font-semibold text-white">${o.nombre}</p>
+            <p class="text-xs text-slate-400">${o.cliente} • ${o.fecha}</p>
+          </div>
+          <span class="text-amber-400 font-bold">${formatCOP(o.valor)}</span>
+        </div>
+      `).join('');
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
